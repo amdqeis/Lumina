@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +10,8 @@ from app.repositories import user_repository
 from app.schemas.auth import GoogleAuthRequest, TokenResponse, TokenUserOut
 from app.schemas.user import UserOut
 from app.services import auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -21,7 +25,8 @@ async def google_auth(body: GoogleAuthRequest, db: AsyncSession = Depends(get_db
     """
     try:
         profile = await auth_service.exchange_google_code(body.code, body.redirect_uri)
-    except Exception:
+    except Exception as exc:
+        logger.error("Google code exchange failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to exchange Google auth code. Please try again.",

@@ -24,6 +24,11 @@ class Settings(BaseSettings):
 
     APP_ENV: str = "development"
     ALLOWED_ORIGINS: str = "http://localhost:3000"
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    @property
+    def GOOGLE_REDIRECT_URI(self) -> str:
+        return f"{self.FRONTEND_URL}/auth/callback"
 
     @property
     def allowed_origins_list(self) -> list[str]:

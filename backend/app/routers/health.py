@@ -31,7 +31,7 @@ async def health_check():
 
     # Check Google API reachability
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, trust_env=False) as client:
             resp = await client.get(GOOGLE_PING_URL)
             if resp.status_code == 200:
                 google_status = "reachable"

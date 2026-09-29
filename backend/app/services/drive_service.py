@@ -29,7 +29,7 @@ async def list_drive_photos(access_token: str, folder_id: str) -> list[DriveFile
     files: list[DriveFile] = []
     page_token: str | None = None
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(trust_env=False) as client:
         while True:
             params: dict = {
                 "q": query,

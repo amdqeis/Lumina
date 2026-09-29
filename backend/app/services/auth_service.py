@@ -1,17 +1,28 @@
 from datetime import datetime, timedelta, timezone
+import logging
 
 import httpx
 from jose import JWTError, jwt
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 async def exchange_google_code(code: str, redirect_uri: str) -> dict:
-    """Exchange Google auth code for user profile info."""
-    async with httpx.AsyncClient() as client:
+    """Exchange Google auth code for user profile info.
+
+    Args:
+        code: The OAuth2 authorization code received from Google.
+        redirect_uri: Must exactly match the redirect_uri used when initiating
+            the OAuth flow on the frontend. Google validates this value.
+    """
+    logger.info("Exchanging Google code, redirect_uri=%r", redirect_uri)
+
+    async with httpx.AsyncClient(trust_env=False) as client:
         # Step 1: exchange code for tokens
         token_resp = await client.post(
             GOOGLE_TOKEN_URL,
@@ -23,6 +34,12 @@ async def exchange_google_code(code: str, redirect_uri: str) -> dict:
                 "grant_type": "authorization_code",
             },
         )
+        if not token_resp.is_success:
+            logger.error(
+                "Google token exchange failed [%d]: %s",
+                token_resp.status_code,
+                token_resp.text,
+            )
         token_resp.raise_for_status()
         token_data = token_resp.json()
         access_token = token_data["access_token"]

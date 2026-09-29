@@ -2,10 +2,9 @@
 
 const GOOGLE_OAUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-const REDIRECT_URI =
-  typeof window !== "undefined"
-    ? `${window.location.origin}/auth/callback`
-    : "http://localhost:3000/auth/callback";
+
+// Hardcoded — jangan pakai window.location.origin (bisa menghasilkan URL invalid di Next.js dev)
+const REDIRECT_URI = "http://localhost:3000/auth/callback";
 
 export function getGoogleOAuthURL(): string {
   const params = new URLSearchParams({
@@ -25,10 +24,7 @@ export function getGoogleOAuthURL(): string {
 }
 
 export function getRedirectURI(): string {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}/auth/callback`;
-  }
-  return "http://localhost:3000/auth/callback";
+  return REDIRECT_URI;
 }
 
 // ─── Token management ────────────────────────────────────

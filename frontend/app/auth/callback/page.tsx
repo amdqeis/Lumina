@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { exchangeGoogleCode } from "@/lib/api";
 import { getRedirectURI, saveAuth } from "@/lib/auth";
@@ -10,8 +10,13 @@ function CallbackInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { login } = useAuth();
+  const called = useRef(false);
 
   useEffect(() => {
+    // Guard: prevent double-call from React StrictMode or re-renders
+    if (called.current) return;
+    called.current = true;
+
     const code = searchParams.get("code");
     const error = searchParams.get("error");
 
