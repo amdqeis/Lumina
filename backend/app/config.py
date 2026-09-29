@@ -2,12 +2,25 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
+    # Database — individual components, assembled into URL via property
+    DATABASE_USERNAME: str
+    DATABASE_PASSWORD: str
+    DATABASE_HOST: str = "localhost"
+    DATABASE_PORT: int = 5432
+    DATABASE_DATABASE: str
+
+    @property
+    def DATABASE_URL(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.DATABASE_USERNAME}:{self.DATABASE_PASSWORD}"
+            f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_DATABASE}"
+        )
+
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 10080  # 7 days
+    JWT_EXPIRE_MINUTES: int = 10080
 
     APP_ENV: str = "development"
     ALLOWED_ORIGINS: str = "http://localhost:3000"

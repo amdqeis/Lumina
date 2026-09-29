@@ -13,10 +13,8 @@ from app.schemas.photo import (
     PhotoOut,
     PhotoUpdateRequest,
     PhotographerSummary,
-    SyncRequest,
-    SyncResult,
 )
-from app.services import drive_service, shuffle_service
+from app.services import shuffle_service
 
 
 def _to_photographer(user) -> PhotographerSummary:
@@ -87,36 +85,6 @@ async def delete_photo(
     db: AsyncSession, photo_id: uuid.UUID, user_id: uuid.UUID
 ) -> bool:
     return await photo_repository.delete(db, photo_id, user_id)
-
-
-async def sync_from_drive(
-    db: AsyncSession,
-    user,  # User ORM model
-    body: SyncRequest,
-) -> SyncResult:
-    """Sync photos from a Google Drive folder into the Lumina database."""
-    drive_files = await drive_service.list_drive_photos(
-        # NOTE: access_token storage is not implemented yet.
-        # For now, the sync requires the user to pass their access_token.
-        # This will be improved in a future sprint with token refresh logic.
-        access_token="",  # placeholder — see routers/me.py for how this is passed
-        folder_id=body.folder_id,
-    )
-
-    photos_to_insert = [
-        Photo(
-            user_id=user.id,
-            drive_file_id=f.file_id,
-            title=f.name,
-            thumbnail_url=f.thumbnail_url,
-            exif_data=f.exif,
-            is_public=True,
-        )
-        for f in drive_files
-    ]
-
-    synced, skipped = await photo_repository.upsert_many(db, photos_to_insert)
-    return SyncResult(synced_count=synced, skipped_count=skipped)
 
 
 async def get_explore_feed(

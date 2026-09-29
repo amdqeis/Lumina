@@ -1,11 +1,26 @@
-import { getPublicProfile } from "@/lib/api";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AtSign, Globe, Camera } from "lucide-react";
 import ProfileGallery from "./ProfileGallery";
+import type { PublicProfile } from "@/lib/api";
 
 interface Props {
   params: Promise<{ username: string }>;
+}
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+
+async function fetchPublicProfile(username: string): Promise<PublicProfile | null> {
+  try {
+    const res = await fetch(`${API_BASE}/users/${username}`, {
+      next: { revalidate: 60 }, // ISR: revalidate every 60s
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -19,12 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PhotographerProfilePage({ params }: Props) {
   const { username } = await params;
 
-  let profile = null;
-  try {
-    profile = await getPublicProfile(username);
-  } catch {
-    // Not found
-  }
+  const profile = await fetchPublicProfile(username);
 
   if (!profile) {
     return (
