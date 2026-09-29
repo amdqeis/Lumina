@@ -26,14 +26,16 @@ async def upsert(
     google_id: str,
     display_name: str | None,
     avatar_url: str | None,
+    google_access_token: str | None = None,
 ) -> User:
-    """Create user if not exists, update display_name & avatar_url if exists."""
+    """Create user if not exists, update display_name, avatar_url & access_token if exists."""
     user = await get_by_google_id(db, google_id)
     if user is None:
         user = User(
             google_id=google_id,
             display_name=display_name,
             avatar_url=avatar_url,
+            google_access_token=google_access_token,
         )
         db.add(user)
     else:
@@ -41,6 +43,8 @@ async def upsert(
             user.display_name = display_name
         if avatar_url:
             user.avatar_url = avatar_url
+        if google_access_token:
+            user.google_access_token = google_access_token
     await db.commit()
     await db.refresh(user)
     return user

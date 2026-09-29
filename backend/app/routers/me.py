@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -35,23 +35,25 @@ async def get_my_photos(
 )
 async def sync_drive(
     body: SyncRequest,
-    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Reads all image files from the given Google Drive folder using the user's
-    delegated access token (extracted from the Authorization header).
+    Google OAuth access token (stored in DB at login time).
     New photos are inserted; duplicates (same drive_file_id) are skipped.
     Original files on Google Drive are never modified.
     """
-    # Extract the raw Bearer token to pass to Drive API as the user's access token
-    auth_header = request.headers.get("Authorization", "")
-    access_token = auth_header.removeprefix("Bearer ").strip()
-
     from app.services.drive_service import list_drive_photos
     from app.models.photo import Photo
     from app.repositories import photo_repository
+
+    access_token = current_user.google_access_token
+    if not access_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google access token not available. Please log in again to re-authorize.",
+        )
 
     try:
         drive_files = await list_drive_photos(access_token, body.folder_id)

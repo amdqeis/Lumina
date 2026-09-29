@@ -32,6 +32,7 @@ async def google_auth(body: GoogleAuthRequest, db: AsyncSession = Depends(get_db
         google_id=profile["google_id"],
         display_name=profile["display_name"],
         avatar_url=profile["avatar_url"],
+        google_access_token=profile["access_token"],
     )
 
     token = auth_service.generate_jwt(str(user.id))

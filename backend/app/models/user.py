@@ -19,6 +19,7 @@ class User(Base):
     avatar_url: Mapped[Optional[str]] = mapped_column(Text)
     instagram: Mapped[Optional[str]] = mapped_column(String)
     portfolio: Mapped[Optional[str]] = mapped_column(Text)
+    google_access_token: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

@@ -2,12 +2,17 @@ import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.photo import Photo
 
 
 async def get_by_id(db: AsyncSession, photo_id: uuid.UUID) -> Photo | None:
-    result = await db.execute(select(Photo).where(Photo.id == photo_id))
+    result = await db.execute(
+        select(Photo)
+        .options(selectinload(Photo.user))
+        .where(Photo.id == photo_id)
+    )
     return result.scalar_one_or_none()
 
 
@@ -19,6 +24,7 @@ async def get_by_drive_file_id(db: AsyncSession, drive_file_id: str) -> Photo | 
 async def get_by_user(db: AsyncSession, user_id: uuid.UUID) -> list[Photo]:
     result = await db.execute(
         select(Photo)
+        .options(selectinload(Photo.user))
         .where(Photo.user_id == user_id)
         .order_by(Photo.created_at.desc())
     )
@@ -28,6 +34,7 @@ async def get_by_user(db: AsyncSession, user_id: uuid.UUID) -> list[Photo]:
 async def get_all_public(db: AsyncSession) -> list[Photo]:
     result = await db.execute(
         select(Photo)
+        .options(selectinload(Photo.user))
         .where(Photo.is_public == True)  # noqa: E712
         .order_by(Photo.created_at.desc())
     )

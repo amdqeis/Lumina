@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.schemas.photo import FeedResponse
-from app.services import photo_service
+from app.services import explore_service
 
 router = APIRouter(prefix="/explore", tags=["Explore"])
 
@@ -19,4 +19,4 @@ async def get_feed(
     - At most 3 photos per photographer are included
     - Order is randomized per session_id and resets daily
     """
-    return await photo_service.get_explore_feed(db, session_id=session_id, limit=limit)
+    return await explore_service.get_feed(db, session_id=session_id, limit=limit)
