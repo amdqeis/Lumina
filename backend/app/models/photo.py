@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,11 +16,11 @@ class Photo(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     drive_file_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    title: Mapped[str | None] = mapped_column(Text)
-    caption: Mapped[str | None] = mapped_column(Text)
+    title: Mapped[Optional[str]] = mapped_column(Text)
+    caption: Mapped[Optional[str]] = mapped_column(Text)
     is_public: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
-    thumbnail_url: Mapped[str | None] = mapped_column(Text)
-    exif_data: Mapped[dict | None] = mapped_column(JSON)
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(Text)
+    exif_data: Mapped[Optional[dict]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
