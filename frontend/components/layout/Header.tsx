@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getGoogleOAuthURL } from "@/lib/auth";
-import { LogIn, LogOut, Camera, LayoutDashboard, Settings } from "lucide-react";
+import { LogIn, LogOut, Camera, Settings } from "lucide-react";
 
 export default function Header() {
   const { user, logout, isLoading } = useAuth();
@@ -52,7 +51,7 @@ export default function Header() {
         ) : user ? (
           <>
             {/* User avatar */}
-            <Link href={`/photographers/${user.username || user.id}`} className="group">
+            <Link href="/profile" className="group" title="Your Profile">
               {user.avatar_url ? (
                 <img
                   src={user.avatar_url}
@@ -79,13 +78,13 @@ export default function Header() {
             </button>
           </>
         ) : (
-          <a
-            href={getGoogleOAuthURL()}
+          <Link
+            href="/login"
             className="flex items-center gap-2 px-3 py-1.5 border border-white/10 hover:border-white/25 text-fg-dim hover:text-fg-bright transition-all duration-300 rounded-sm"
           >
             <LogIn size={13} />
             <span className="index-label">Sign in</span>
-          </a>
+          </Link>
         )}
       </div>
     </header>

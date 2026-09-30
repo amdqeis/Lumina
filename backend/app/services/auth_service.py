@@ -74,3 +74,20 @@ def verify_jwt(token: str) -> dict:
         return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
     except JWTError as e:
         raise ValueError(f"Invalid token: {e}") from e
+
+
+# ─── Password hashing ────────────────────────────────────────────────────────
+
+from passlib.context import CryptContext
+
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(plain: str) -> str:
+    """Hash a plain-text password using bcrypt."""
+    return _pwd_context.hash(plain)
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    """Verify a plain-text password against a bcrypt hash."""
+    return _pwd_context.verify(plain, hashed)

@@ -35,7 +35,10 @@ export default api;
 
 export interface User {
   id: string;
-  google_id: string;
+  google_id: string | null;
+  email: string | null;
+  email_verified: boolean;
+  phone: string | null;
   username: string | null;
   display_name: string | null;
   bio: string | null;
@@ -98,10 +101,40 @@ export interface PublicProfile {
   photos: { id: string; thumbnail_url: string | null; title: string | null }[];
 }
 
-// Auth
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user: {
+    id: string;
+    display_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  };
+}
+
+// Auth — Google
 export const exchangeGoogleCode = (code: string, redirect_uri: string) =>
-  api.post("/auth/google", { code, redirect_uri }).then((r) => r.data);
+  api.post<TokenResponse>("/auth/google", { code, redirect_uri }).then((r) => r.data);
 export const getMe = () => api.get<User>("/auth/me").then((r) => r.data);
+
+// Auth — Email / password
+export const registerEmail = (email: string, password: string, display_name?: string) =>
+  api.post<{ message: string }>("/auth/register", { email, password, display_name }).then((r) => r.data);
+
+export const loginEmail = (email: string, password: string) =>
+  api.post<TokenResponse>("/auth/login", { email, password }).then((r) => r.data);
+
+export const verifyEmail = (email: string, code: string) =>
+  api.post<TokenResponse>("/auth/verify-email", { email, code, purpose: "verify_email" }).then((r) => r.data);
+
+export const resendOtp = (email: string) =>
+  api.post<{ message: string }>("/auth/resend-otp", { email }).then((r) => r.data);
+
+export const forgotPassword = (email: string) =>
+  api.post<{ message: string }>("/auth/forgot-password", { email }).then((r) => r.data);
+
+export const resetPassword = (email: string, code: string, new_password: string) =>
+  api.post<TokenResponse>("/auth/reset-password", { email, code, new_password }).then((r) => r.data);
 
 // Users
 export const updateProfile = (data: Partial<User>) =>

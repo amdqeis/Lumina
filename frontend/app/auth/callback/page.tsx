@@ -27,8 +27,10 @@ function CallbackInner() {
 
     const redirectUri = getRedirectURI();
     exchangeGoogleCode(code, redirectUri)
-      .then((data: { access_token: string; user: Parameters<typeof login>[1] }) => {
-        login(data.access_token, data.user);
+      .then(async (data) => {
+        saveAuth(data.access_token, data.user as Parameters<typeof login>[1]);
+        const me = await import("@/lib/api").then((m) => m.getMe());
+        login(data.access_token, me);
         router.replace("/dashboard");
       })
       .catch(() => {

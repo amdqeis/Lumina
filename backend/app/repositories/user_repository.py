@@ -64,3 +64,30 @@ async def update_profile(
     await db.commit()
     await db.refresh(user)
     return user
+
+
+# ─── Email / local auth helpers ────────────────────────────────────────────
+
+
+async def get_by_email(db: AsyncSession, email: str) -> User | None:
+    result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
+
+
+async def create_local_user(
+    db: AsyncSession,
+    email: str,
+    password_hash: str,
+    display_name: str | None = None,
+) -> User:
+    """Create a new local (email/password) user. email_verified starts False."""
+    user = User(
+        email=email,
+        password_hash=password_hash,
+        display_name=display_name or email.split("@")[0],
+        email_verified=False,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user

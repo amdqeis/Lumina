@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000"
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # SMTP email settings
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply@lumina.app"
+    SMTP_USE_TLS: bool = False
+    SMTP_START_TLS: bool = True
+
     @property
     def GOOGLE_REDIRECT_URI(self) -> str:
         return f"{self.FRONTEND_URL}/auth/callback"
@@ -40,3 +49,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

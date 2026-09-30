@@ -6,7 +6,10 @@ from pydantic import BaseModel
 
 class UserOut(BaseModel):
     id: uuid.UUID
-    google_id: str
+    google_id: str | None
+    email: str | None
+    email_verified: bool
+    phone: str | None
     username: str | None
     display_name: str | None
     bio: str | None
@@ -24,6 +27,7 @@ class UserUpdateRequest(BaseModel):
     bio: str | None = None
     instagram: str | None = None
     portfolio: str | None = None
+    phone: str | None = None
 
 
 class PublicPhotoSummary(BaseModel):
@@ -43,3 +47,4 @@ class PublicProfileOut(BaseModel):
     portfolio: str | None
     public_photo_count: int
     photos: list[PublicPhotoSummary]
+

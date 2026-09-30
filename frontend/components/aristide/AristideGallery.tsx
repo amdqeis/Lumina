@@ -1,25 +1,28 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getExploreFeed } from "@/lib/api";
 import { getSessionSeed } from "@/lib/auth";
 import { CURATED_EXHIBITION, ExhibitionItem } from "@/lib/curatedExhibition";
-import AristideNavbar from "./AristideNavbar";
+import WebGLGalleryProvider from "@/src/components/canvas/WebGLGallery";
+import HorizontalSlider from "@/src/components/gallery/HorizontalSlider";
+import PhotoCard from "@/src/components/gallery/PhotoCard";
+import EditorialNavbar from "@/src/components/layout/EditorialNavbar";
+import PhotoDetailModal from "@/src/components/modal/PhotoDetailModal";
+import AristideAboutModal from "./AristideAboutModal";
 import AristideShowcase from "./AristideShowcase";
 import AristideStrips from "./AristideStrips";
-import AristideBottomBar from "./AristideBottomBar";
-import AristideAboutModal from "./AristideAboutModal";
+import { SlidersHorizontal, Grid, Film } from "lucide-react";
 
 export default function AristideGallery() {
   const [items, setItems] = useState<ExhibitionItem[]>(CURATED_EXHIBITION);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<"showcase" | "strips">("showcase");
-  const [theme, setTheme] = useState<"warm" | "noir">("warm");
+  const [viewMode, setViewMode] = useState<"slider" | "showcase" | "strips">("slider");
+  const [selectedPhoto, setSelectedPhoto] = useState<ExhibitionItem | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const lastWheelTime = useRef(0);
 
-  // Fetch real photos from backend if available
+  // Fetch real photos dynamically from backend (/api/v1/explore/feed) if available
   useEffect(() => {
     async function loadBackendPhotos() {
       try {
@@ -39,21 +42,24 @@ export default function AristideGallery() {
               titleTop: top,
               titleBottom: bottom,
               fullTitle: rawTitle,
-              imageUrl: p.thumbnail_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1400&q=85",
+              imageUrl:
+                p.thumbnail_url ||
+                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1400&q=85",
               year: "2026",
               type: "GOOGLE DRIVE",
               roleOrGear: "35MM SENSOR · RAW",
-              clientOrArtist: p.photographer?.display_name?.toUpperCase() || "LUMINA ARCHIVE",
-              description: `CLOUD ARCHIVE PHOTOGRAPH SYNCED DIRECTLY VIA GOOGLE DRIVE.`,
+              clientOrArtist:
+                p.photographer?.display_name?.toUpperCase() || "LUMINA ARCHIVE",
+              description: `CLOUD ARCHIVE PHOTOGRAPH SYNCED DIRECTLY VIA GOOGLE DRIVE INTEGRATION.`,
               source: "google_drive",
             };
           });
 
-          // Combine real photos with curated ones
+          // Combine backend photos with curated exhibition items
           setItems([...mapped, ...CURATED_EXHIBITION]);
         }
       } catch (err) {
-        console.warn("Could not load backend photos, displaying curated archive:", err);
+        console.warn("Using curated exhibition archive (backend offline or empty):", err);
       }
     }
 
@@ -61,6 +67,9 @@ export default function AristideGallery() {
   }, []);
 
   const total = items.length;
+  const currentItem = items[activeIndex] || items[0];
+  const nextItem = items[(activeIndex + 1) % total];
+  const prevItem = items[(activeIndex - 1 + total) % total];
 
   const onNext = useCallback(() => {
     setActiveIndex((prev) => (prev + 1) % total);
@@ -72,126 +81,165 @@ export default function AristideGallery() {
 
   const onSelect = useCallback((idx: number) => {
     setActiveIndex(idx);
-    setViewMode("showcase");
   }, []);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (aboutOpen) return;
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        e.preventDefault();
-        onNext();
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        e.preventDefault();
-        onPrev();
-      } else if (e.key === " ") {
-        e.preventDefault();
-        setViewMode((m) => (m === "showcase" ? "strips" : "showcase"));
-      }
-    };
+  // Modal Next / Prev handlers
+  const handleModalNext = useCallback(() => {
+    if (!selectedPhoto) return;
+    const currentIdx = items.findIndex((item) => item.id === selectedPhoto.id);
+    const nextIdx = (currentIdx + 1) % total;
+    setSelectedPhoto(items[nextIdx]);
+    setActiveIndex(nextIdx);
+  }, [items, selectedPhoto, total]);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [aboutOpen, onNext, onPrev]);
-
-  // Wheel navigation with debounce
-  const handleWheel = (e: React.WheelEvent) => {
-    if (viewMode === "strips") return;
-    const now = Date.now();
-    if (now - lastWheelTime.current < 450) return;
-
-    if (Math.abs(e.deltaX) > 30 || Math.abs(e.deltaY) > 30) {
-      if (e.deltaX > 30 || e.deltaY > 30) {
-        lastWheelTime.current = now;
-        onNext();
-      } else if (e.deltaX < -30 || e.deltaY < -30) {
-        lastWheelTime.current = now;
-        onPrev();
-      }
-    }
-  };
-
-  const currentItem = items[activeIndex] || items[0];
-  const nextItem = items[(activeIndex + 1) % total];
-  const prevItem = items[(activeIndex - 1 + total) % total];
-
-  const isWarm = theme === "warm";
+  const handleModalPrev = useCallback(() => {
+    if (!selectedPhoto) return;
+    const currentIdx = items.findIndex((item) => item.id === selectedPhoto.id);
+    const prevIdx = (currentIdx - 1 + total) % total;
+    setSelectedPhoto(items[prevIdx]);
+    setActiveIndex(prevIdx);
+  }, [items, selectedPhoto, total]);
 
   return (
-    <motion.main
-      onWheel={handleWheel}
-      animate={{
-        backgroundColor: isWarm ? "#ECEAE5" : "#0E0F0E",
-        color: isWarm ? "#1C1B18" : "#BAC4B8",
-      }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-screen h-[100dvh] overflow-hidden flex flex-col justify-between select-none"
-    >
-      {/* ─── Top Bar: Navbar with Aristide Ticks & Scrubber ─── */}
-      <AristideNavbar
-        total={total}
-        current={activeIndex}
-        onSelect={onSelect}
-        viewMode={viewMode}
-        onToggleView={() =>
-          setViewMode((m) => (m === "showcase" ? "strips" : "showcase"))
-        }
-        theme={theme}
-        onToggleTheme={() =>
-          setTheme((t) => (t === "warm" ? "noir" : "warm"))
-        }
-        onOpenAbout={() => setAboutOpen(true)}
-      />
+    <WebGLGalleryProvider>
+      <main className="relative w-screen h-[100dvh] overflow-hidden flex flex-col justify-between select-none bg-[#141414] text-[#bac4b8]">
+        {/* ─── Editorial Navbar with Aristide Ticks & Google Drive Connect ─── */}
+        <EditorialNavbar
+          total={total}
+          current={activeIndex}
+          onSelect={onSelect}
+          onOpenAbout={() => setAboutOpen(true)}
+        />
 
-      {/* ─── Center Canvas: Showcase or Strips View ─── */}
-      <AnimatePresence mode="wait">
-        {viewMode === "showcase" ? (
-          <motion.div
-            key="showcase-view"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
-            className="flex-1 w-full flex items-center justify-center relative overflow-hidden"
-          >
-            <AristideShowcase
-              item={currentItem}
-              nextItem={nextItem}
-              prevItem={prevItem}
-              onNext={onNext}
-              onPrev={onPrev}
-              theme={theme}
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="strips-view"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
-            className="flex-1 w-full flex items-center justify-center relative overflow-hidden"
-          >
-            <AristideStrips
-              items={items}
-              activeIndex={activeIndex}
-              onSelect={onSelect}
-              theme={theme}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* ─── Center Gallery Canvas Area with Generous Spacing ─── */}
+        <div className="flex-1 w-full h-full relative overflow-hidden flex items-center justify-center pt-20 pb-16">
+          <AnimatePresence mode="wait">
+            {viewMode === "slider" ? (
+              <motion.div
+                key="webgl-slider"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="w-full h-full"
+              >
+                <HorizontalSlider
+                  itemCount={total}
+                  activeIndex={activeIndex}
+                  onActiveIndexChange={setActiveIndex}
+                >
+                  {items.map((photo, idx) => (
+                    <PhotoCard
+                      key={photo.id}
+                      photo={photo}
+                      index={idx}
+                      isActive={idx === activeIndex}
+                      onClick={(p) => setSelectedPhoto(p)}
+                    />
+                  ))}
+                </HorizontalSlider>
+              </motion.div>
+            ) : viewMode === "showcase" ? (
+              <motion.div
+                key="showcase-view"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.4 }}
+                className="flex-1 w-full h-full flex items-center justify-center relative overflow-hidden"
+              >
+                <AristideShowcase
+                  item={currentItem}
+                  nextItem={nextItem}
+                  prevItem={prevItem}
+                  onNext={onNext}
+                  onPrev={onPrev}
+                  theme="noir"
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="strips-view"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.4 }}
+                className="flex-1 w-full h-full flex items-center justify-center relative overflow-hidden"
+              >
+                <AristideStrips
+                  items={items}
+                  activeIndex={activeIndex}
+                  onSelect={onSelect}
+                  theme="noir"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-      {/* ─── Bottom Row: Metadata, Explore Trigger, Story ─── */}
-      <AristideBottomBar item={currentItem} theme={theme} />
+        {/* ─── Ambient Bottom Telemetry & View Mode Bar ─── */}
+        <footer className="fixed bottom-0 left-0 right-0 z-30 px-8 py-5 md:px-16 flex items-center justify-between pointer-events-auto bg-gradient-to-t from-[#141414]/95 via-[#141414]/60 to-transparent">
+          {/* Interaction hints with clearer font sizing */}
+          <div className="flex items-center gap-4 text-xs font-mono tracking-[0.2em] text-[#bac4b8]/70 uppercase font-medium">
+            <span className="hidden sm:inline">← → OR DRAG TO GLIDE</span>
+            <span className="hidden sm:inline text-[#cc9933]">·</span>
+            <span>CLICK TO EXPAND CINEMATIC VIEW</span>
+          </div>
 
-      {/* ─── About Drawer / Modal ─── */}
-      <AristideAboutModal
-        isOpen={aboutOpen}
-        onClose={() => setAboutOpen(false)}
-        theme={theme}
-      />
-    </motion.main>
+          {/* View Mode Switcher */}
+          <div className="flex items-center gap-2 bg-[#1c1c1c]/90 border border-[#bac4b8]/20 rounded-full p-1.5 backdrop-blur-lg shadow-xl">
+            <button
+              onClick={() => setViewMode("slider")}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-mono tracking-wider transition-all duration-300 cursor-pointer ${
+                viewMode === "slider"
+                  ? "bg-[#cc9933] text-black font-bold shadow-md"
+                  : "text-[#bac4b8]/80 hover:text-white"
+              }`}
+            >
+              <Film size={13} />
+              <span>FLUID WEBGL</span>
+            </button>
+            <button
+              onClick={() => setViewMode("showcase")}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-mono tracking-wider transition-all duration-300 cursor-pointer ${
+                viewMode === "showcase"
+                  ? "bg-[#cc9933] text-black font-bold shadow-md"
+                  : "text-[#bac4b8]/80 hover:text-white"
+              }`}
+            >
+              <SlidersHorizontal size={13} />
+              <span>SHOWCASE</span>
+            </button>
+            <button
+              onClick={() => setViewMode("strips")}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-mono tracking-wider transition-all duration-300 cursor-pointer ${
+                viewMode === "strips"
+                  ? "bg-[#cc9933] text-black font-bold shadow-md"
+                  : "text-[#bac4b8]/80 hover:text-white"
+              }`}
+            >
+              <Grid size={13} />
+              <span>STRIPS</span>
+            </button>
+          </div>
+        </footer>
+
+        {/* ─── Cinematic Detail Modal with Shared Element Expansion ─── */}
+        <PhotoDetailModal
+          photo={selectedPhoto}
+          isOpen={selectedPhoto !== null}
+          onClose={() => setSelectedPhoto(null)}
+          onNext={handleModalNext}
+          onPrev={handleModalPrev}
+        />
+
+        {/* ─── Aristide About Modal ─── */}
+        <AristideAboutModal
+          isOpen={aboutOpen}
+          onClose={() => setAboutOpen(false)}
+          theme="noir"
+        />
+      </main>
+    </WebGLGalleryProvider>
   );
 }
